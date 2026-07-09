@@ -1,14 +1,16 @@
 # Ukulele Chord
 
-A single-file ukulele chord chart that runs directly in the browser.
+A browser-only ukulele chord helper.
 
 ## Usage
 
-Open `index.html` in a browser.
+Open `index.html` in a browser. `index.html` is the GitHub Pages entry point and mirrors `ukulele.html`.
 
-- Search by chord name, such as `C`, `Am`, or `G7`.
-- Filter by root note.
+- Paste ChordWiki source text into the textarea.
+- Load the song to transpose chords and show ukulele fingering diagrams.
 - No build step or server is required.
+
+The generated sample page is available at `sample-chord-chart.html`.
 
 ## Publish with GitHub Pages
 
@@ -26,12 +28,20 @@ After GitHub Pages finishes deploying, the site should be available at:
 https://shigenius.github.io/ukurere-chord/
 ```
 
+The sample page should be available at:
+
+```text
+https://shigenius.github.io/ukurere-chord/sample-chord-chart.html
+```
+
 ## Files
 
 ```text
 .
 |-- index.html
 |-- README.md
+|-- sample-chord-chart.html
+|-- ukulele.html
 `-- .gitignore
 ```
 

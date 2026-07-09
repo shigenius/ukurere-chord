@@ -1,0 +1,337 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ukulele Chord</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f5ef;
+      --ink: #1f2933;
+      --muted: #5b6572;
+      --panel: #ffffff;
+      --line: #d8d2c4;
+      --accent: #167f7a;
+      --accent-dark: #0f5f5b;
+      --fret: #b48a57;
+      --string: #58616d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(960px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--muted);
+      max-width: 36rem;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      font: inherit;
+      padding: 9px 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(31, 41, 51, 0.06);
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 1.25rem;
+      letter-spacing: 0;
+    }
+
+    .diagram {
+      width: 100%;
+      aspect-ratio: 1 / 1.08;
+      display: block;
+    }
+
+    .fingering {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+
+    .empty {
+      display: none;
+      padding: 22px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    @media (max-width: 640px) {
+      main {
+        width: min(100% - 24px, 960px);
+        padding-top: 20px;
+      }
+
+      header,
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Ukulele Chord</h1>
+        <p><a href="index.html">ChordWiki helper</a></p>
+        <p class="subtitle">A fast, single-file ukulele chord chart for common shapes.</p>
+      </div>
+    </header>
+
+    <section class="controls" aria-label="Chord search">
+      <label>
+        Chord name
+        <input id="search" type="search" placeholder="Example: C, Am, G7" autocomplete="off">
+      </label>
+      <label>
+        Root
+        <select id="root">
+          <option value="">All</option>
+        </select>
+      </label>
+    </section>
+
+    <p id="empty" class="empty">No matching chords.</p>
+    <section id="chords" class="grid" aria-live="polite"></section>
+  </main>
+
+  <template id="card-template">
+    <article class="card">
+      <h2></h2>
+      <svg class="diagram" viewBox="0 0 160 174" role="img"></svg>
+      <div class="fingering"></div>
+    </article>
+  </template>
+
+  <script>
+    const chords = [
+      { name: "C", root: "C", frets: [0, 0, 0, 3] },
+      { name: "Cm", root: "C", frets: [0, 3, 3, 3] },
+      { name: "C7", root: "C", frets: [0, 0, 0, 1] },
+      { name: "D", root: "D", frets: [2, 2, 2, 0] },
+      { name: "Dm", root: "D", frets: [2, 2, 1, 0] },
+      { name: "D7", root: "D", frets: [2, 2, 2, 3] },
+      { name: "E", root: "E", frets: [1, 4, 0, 2] },
+      { name: "Em", root: "E", frets: [0, 4, 3, 2] },
+      { name: "E7", root: "E", frets: [1, 2, 0, 2] },
+      { name: "F", root: "F", frets: [2, 0, 1, 0] },
+      { name: "Fm", root: "F", frets: [1, 0, 1, 3] },
+      { name: "F7", root: "F", frets: [2, 3, 1, 3] },
+      { name: "G", root: "G", frets: [0, 2, 3, 2] },
+      { name: "Gm", root: "G", frets: [0, 2, 3, 1] },
+      { name: "G7", root: "G", frets: [0, 2, 1, 2] },
+      { name: "A", root: "A", frets: [2, 1, 0, 0] },
+      { name: "Am", root: "A", frets: [2, 0, 0, 0] },
+      { name: "A7", root: "A", frets: [0, 1, 0, 0] },
+      { name: "B", root: "B", frets: [4, 3, 2, 2] },
+      { name: "Bm", root: "B", frets: [4, 2, 2, 2] },
+      { name: "B7", root: "B", frets: [2, 3, 2, 2] }
+    ];
+
+    const strings = ["G", "C", "E", "A"];
+    const search = document.querySelector("#search");
+    const root = document.querySelector("#root");
+    const chordsEl = document.querySelector("#chords");
+    const empty = document.querySelector("#empty");
+    const template = document.querySelector("#card-template");
+
+    for (const note of [...new Set(chords.map((chord) => chord.root))]) {
+      const option = document.createElement("option");
+      option.value = note;
+      option.textContent = note;
+      root.append(option);
+    }
+
+    function svgEl(name, attributes = {}) {
+      const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+      for (const [key, value] of Object.entries(attributes)) {
+        element.setAttribute(key, value);
+      }
+      return element;
+    }
+
+    function drawDiagram(svg, chord) {
+      svg.replaceChildren();
+      svg.setAttribute("aria-label", `${chord.name} chord diagram`);
+
+      const left = 28;
+      const top = 26;
+      const width = 104;
+      const height = 124;
+      const stringGap = width / 3;
+      const fretGap = height / 4;
+
+      strings.forEach((name, index) => {
+        const x = left + index * stringGap;
+        svg.append(svgEl("line", {
+          x1: x,
+          y1: top,
+          x2: x,
+          y2: top + height,
+          stroke: "var(--string)",
+          "stroke-width": index === 0 || index === 3 ? 2.2 : 1.8
+        }));
+        const text = svgEl("text", {
+          x,
+          y: 166,
+          "text-anchor": "middle",
+          fill: "var(--muted)",
+          "font-size": 12,
+          "font-family": "system-ui, sans-serif"
+        });
+        text.textContent = name;
+        svg.append(text);
+      });
+
+      for (let fret = 0; fret <= 4; fret += 1) {
+        const y = top + fret * fretGap;
+        svg.append(svgEl("line", {
+          x1: left,
+          y1: y,
+          x2: left + width,
+          y2: y,
+          stroke: fret === 0 ? "var(--fret)" : "var(--line)",
+          "stroke-width": fret === 0 ? 5 : 2
+        }));
+      }
+
+      chord.frets.forEach((fret, index) => {
+        const x = left + index * stringGap;
+        if (fret === 0) {
+          const open = svgEl("circle", {
+            cx: x,
+            cy: 14,
+            r: 5,
+            fill: "none",
+            stroke: "var(--accent)",
+            "stroke-width": 2
+          });
+          svg.append(open);
+          return;
+        }
+
+        const y = top + (fret - 0.5) * fretGap;
+        svg.append(svgEl("circle", {
+          cx: x,
+          cy: y,
+          r: 10,
+          fill: "var(--accent)"
+        }));
+        const label = svgEl("text", {
+          x,
+          y: y + 4,
+          "text-anchor": "middle",
+          fill: "white",
+          "font-size": 11,
+          "font-weight": 700,
+          "font-family": "system-ui, sans-serif"
+        });
+        label.textContent = fret;
+        svg.append(label);
+      });
+    }
+
+    function render() {
+      const query = search.value.trim().toLowerCase();
+      const selectedRoot = root.value;
+      const visible = chords.filter((chord) => {
+        const matchesQuery = chord.name.toLowerCase().includes(query);
+        const matchesRoot = !selectedRoot || chord.root === selectedRoot;
+        return matchesQuery && matchesRoot;
+      });
+
+      chordsEl.replaceChildren();
+      empty.style.display = visible.length ? "none" : "block";
+
+      for (const chord of visible) {
+        const card = template.content.firstElementChild.cloneNode(true);
+        card.querySelector("h2").textContent = chord.name;
+        card.querySelector(".fingering").textContent = `GCEA: ${chord.frets.join("-")}`;
+        drawDiagram(card.querySelector("svg"), chord);
+        chordsEl.append(card);
+      }
+    }
+
+    search.addEventListener("input", render);
+    root.addEventListener("change", render);
+    render();
+  </script>
+</body>
+</html>
