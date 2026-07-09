@@ -6,7 +6,6 @@
 
 - [Ukulele Chord](https://shigenius.github.io/ukurere-chord/)
 - [サンプルコード表](https://shigenius.github.io/ukurere-chord/sample-chord-chart.html)
-- [ChordWiki](https://ja.chordwiki.org/)
 
 ## 使い方
 
