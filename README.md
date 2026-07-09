@@ -1,50 +1,18 @@
 # Ukulele Chord
 
-A browser-only ukulele chord helper.
+ChordWiki の楽曲ページからコード付きテキストを貼り付けて、ウクレレ用に表示するブラウザツールです。
 
-## Usage
+## 公開ページ
 
-Open `index.html` in a browser. `index.html` is the GitHub Pages entry point and mirrors `ukulele.html`.
+- [Ukulele Chord](https://shigenius.github.io/ukurere-chord/)
+- [サンプルコード表](https://shigenius.github.io/ukurere-chord/sample-chord-chart.html)
 
-- Paste ChordWiki source text into the textarea.
-- Load the song to transpose chords and show ukulele fingering diagrams.
-- No build step or server is required.
+## 使い方
 
-The generated sample page is available at `sample-chord-chart.html`.
+1. ChordWiki で変換したい楽曲ページを開きます。
+2. 楽曲ページの編集ボタンを押します。
+3. 編集画面に表示されるコードテキストをコピーします。
+4. [Ukulele Chord](https://shigenius.github.io/ukurere-chord/) のテキストエリアに貼り付けます。
+5. 読み込みボタンを押すと、コード譜とウクレレの押さえ方が表示されます。
 
-## Publish with GitHub Pages
-
-In the GitHub repository:
-
-1. Open `Settings`.
-2. Open `Pages`.
-3. Under `Build and deployment`, set `Source` to `Deploy from a branch`.
-4. Set `Branch` to `main` and the folder to `/root`.
-5. Click `Save`.
-
-After GitHub Pages finishes deploying, the site should be available at:
-
-```text
-https://shigenius.github.io/ukurere-chord/
-```
-
-The sample page should be available at:
-
-```text
-https://shigenius.github.io/ukurere-chord/sample-chord-chart.html
-```
-
-## Files
-
-```text
-.
-|-- index.html
-|-- README.md
-|-- sample-chord-chart.html
-|-- ukulele.html
-`-- .gitignore
-```
-
-## Ignored Files
-
-`chordwiki_sources/` is treated as local source or working data and is not committed.
+移調、かんたんコード表示、押さえ方の表示切り替えもできます。
