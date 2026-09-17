@@ -7,6 +7,7 @@
 <style>
 body{font-family:"Hiragino Sans","Yu Gothic",sans-serif;max-width:860px;margin:0 auto;padding:16px;color:#222;line-height:1.6}
 textarea{width:100%;height:160px;font-size:13px;box-sizing:border-box}
+input,select{font:inherit;max-width:100%;box-sizing:border-box}
 button{font-size:14px;padding:6px 14px;border:1px solid #bbb;border-radius:8px;background:#fff;cursor:pointer}
 button:hover{background:#f3f3f3}
 button.on{background:#eeedfe;border-color:#534ab7;color:#3c3489}
@@ -21,16 +22,38 @@ button.on{background:#eeedfe;border-color:#534ab7;color:#3c3489}
 #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
 .card{border:1px solid #ddd;border-radius:8px;padding:4px;transition:border-color .3s}
 .capo{font-size:13px;color:#185fa5;margin:4px 0 0}
+.library{background:#f6f5f0;border-radius:12px;padding:12px 16px;margin:14px 0}
+.library h2{margin:0 0 6px}
+.library-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.library-actions input{min-width:180px;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+.library-actions select{min-width:220px;padding:6px 8px;border:1px solid #bbb;border-radius:6px}
+.storage-status{font-size:12px;color:#777;margin:6px 0 0}
 h1{font-size:20px}h2{font-size:16px;margin-top:28px}
-@media print{textarea,.ctrl button,#load,.hint{display:none}}
+@media print{textarea,.ctrl button,#load,.hint,.library{display:none}}
 </style>
 </head>
 <body>
 <p><a href="https://ja.chordwiki.org/">ChordWiki</a> / <a href="sample-chord-chart.html">サンプルコード表</a></p>
 <h1>ウクレレコード変換</h1>
-<p class="hint">ChordWikiの曲ページで「編集」を開き、<b>[CM7]歌詞…</b> の形式のソーステキストを全部コピーして下に貼り付けてください。歌詞データは保存も送信もされず、この画面内でのみ処理されます。</p>
+<p class="hint">ChordWikiの曲ページで「編集」を開き、<b>[CM7]歌詞…</b> の形式のソーステキストを全部コピーして下に貼り付けてください。保存したデータはこのブラウザ内にだけ保存され、GitHubやサーバーには送信されません。</p>
 <textarea id="src" placeholder="ここに貼り付け　例）{title: 曲名}&#10;[CM7]そらに[Bm7]うつれ..."></textarea>
 <p><button id="load">読み込む</button></p>
+
+<section class="library" aria-labelledby="library-title">
+  <h2 id="library-title">保存した譜面</h2>
+  <div class="library-actions">
+    <label for="songName">保存名</label>
+    <input id="songName" type="text" maxlength="80" placeholder="曲名を入力">
+    <button id="saveNew">新規保存</button>
+    <button id="saveUpdate" disabled>上書き保存</button>
+  </div>
+  <div class="library-actions">
+    <label for="savedList">開く</label>
+    <select id="savedList"><option value="">保存した譜面を選択…</option></select>
+    <button id="deleteSaved" disabled>削除</button>
+  </div>
+  <p id="storageStatus" class="storage-status">この端末・このブラウザ内にだけ保存されます。</p>
+</section>
 
 <div id="controls" class="ctrl" style="display:none">
   <span style="font-size:13px;color:#777">移調</span>
@@ -124,7 +147,61 @@ function miniDiagram(name){
   else s+='<circle cx="'+(x0+(f-st)*fw+fw/2)+'" cy="'+y+'" r="3.2" fill="#534ab7"/>'}
  return s+'</svg>'}
 
-let song=[],state={t:0,easy:false,diag:true};
+const STORAGE_KEY="ukulele-chord-songs-v1",LAST_OPENED_KEY="ukulele-chord-last-opened-v1";
+const DEFAULT_STATE={t:0,easy:false,diag:true};
+let song=[],state={...DEFAULT_STATE},activeSavedId=null;
+function getSavedSongs(){
+ try{
+  const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+  return Array.isArray(data)?data.filter(x=>x&&typeof x.id==="string"&&typeof x.name==="string"&&typeof x.source==="string"):[];
+ }catch(_){return []}
+}
+function putSavedSongs(songs){
+ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(songs));return true}
+ catch(_){document.getElementById("storageStatus").textContent="保存できませんでした。ブラウザのサイトデータ設定を確認してください。";return false}
+}
+function titleFromSource(text){
+ const m=text.match(/^\{\s*(?:title|t)\s*:\s*(.*?)\s*\}$/im);
+ return m&&m[1]?m[1]:"";
+}
+function safeState(value){
+ return {t:Number.isInteger(value&&value.t)&&value.t>=-5&&value.t<=6?value.t:0,easy:!!(value&&value.easy),diag:value&&typeof value.diag==="boolean"?value.diag:true};
+}
+function makeId(){return crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)}
+function refreshSavedList(selectedId=activeSavedId){
+ const list=document.getElementById("savedList"),songs=getSavedSongs();
+ list.textContent="";
+ const placeholder=document.createElement("option");placeholder.value="";placeholder.textContent="保存した譜面を選択…";list.appendChild(placeholder);
+ songs.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).forEach(item=>{
+  const opt=document.createElement("option");opt.value=item.id;
+  opt.textContent=item.name;opt.selected=item.id===selectedId;list.appendChild(opt)});
+ document.getElementById("saveUpdate").disabled=!activeSavedId;
+ document.getElementById("deleteSaved").disabled=!activeSavedId;
+ document.getElementById("storageStatus").textContent=songs.length?`${songs.length}件をこのブラウザ内に保存しています。`:"この端末・このブラウザ内にだけ保存されます。";
+}
+function loadSource(text,keepName=false){
+ document.getElementById("src").value=text;
+ song=parseSource(text);
+ if(!keepName)document.getElementById("songName").value=titleFromSource(text);
+ document.getElementById("controls").style.display="flex";render();
+}
+function openSavedSong(id){
+ const item=getSavedSongs().find(x=>x.id===id);if(!item)return;
+ activeSavedId=item.id;state=safeState(item.state);loadSource(item.source,true);
+ document.getElementById("songName").value=item.name;
+ try{localStorage.setItem(LAST_OPENED_KEY,item.id)}catch(_){}
+ refreshSavedList();
+}
+function saveSong(overwrite){
+ const source=document.getElementById("src").value;
+ if(!source.trim()){document.getElementById("storageStatus").textContent="保存するコード譜を貼り付けてから読み込んでください。";return}
+ const name=document.getElementById("songName").value.trim()||titleFromSource(source)||"名称未設定";
+ const songs=getSavedSongs(),now=Date.now();
+ let item=overwrite&&activeSavedId?songs.find(x=>x.id===activeSavedId):null;
+ if(item){Object.assign(item,{name,source,state:{...state},updatedAt:now})}
+ else{item={id:makeId(),name,source,state:{...state},updatedAt:now};songs.push(item);activeSavedId=item.id}
+ if(putSavedSongs(songs)){document.getElementById("songName").value=name;try{localStorage.setItem(LAST_OPENED_KEY,activeSavedId)}catch(_){}refreshSavedList()}
+}
 function parseSource(text){
  const out=[];
  text.split(/\r?\n/).forEach(line=>{
@@ -183,8 +260,19 @@ function render(){
   c.innerHTML=diagram(fn);g.appendChild(c)});
  document.getElementById("gh").style.display=seen.length?"":"none"}
 document.getElementById("load").onclick=()=>{
- song=parseSource(document.getElementById("src").value);
- document.getElementById("controls").style.display="flex";render()};
+ activeSavedId=null;
+ loadSource(document.getElementById("src").value);
+ refreshSavedList()};
+document.getElementById("saveNew").onclick=()=>saveSong(false);
+document.getElementById("saveUpdate").onclick=()=>saveSong(true);
+document.getElementById("savedList").onchange=e=>{if(e.target.value)openSavedSong(e.target.value)};
+document.getElementById("deleteSaved").onclick=()=>{
+ if(!activeSavedId||!confirm("この保存済み譜面を、このブラウザから削除しますか？"))return;
+ const songs=getSavedSongs().filter(item=>item.id!==activeSavedId);
+ if(putSavedSongs(songs)){
+  try{if(localStorage.getItem(LAST_OPENED_KEY)===activeSavedId)localStorage.removeItem(LAST_OPENED_KEY)}catch(_){}
+  activeSavedId=null;document.getElementById("songName").value="";refreshSavedList();
+ }};
 document.getElementById("tup").onclick=()=>{if(state.t<6){state.t++;render()}};
 document.getElementById("tdown").onclick=()=>{if(state.t>-5){state.t--;render()}};
 document.getElementById("mOrig").onclick=()=>{state.easy=false;render()};
@@ -197,8 +285,10 @@ document.getElementById("auto").onclick=()=>{
   song.forEach(it=>{if(it.type==="line")it.segs.forEach(sg=>{
    if(sg.ch){const p=parseChord(transposeName(simplify(sg.ch),t));if(p)set[p.root+p.qual]=1}})});
   for(const n in set){const v=voicing(n);if(!v){bad=true;break}tot+=v.diff}
-  if(!bad&&tot<bs){bs=tot;best=t}}
+ if(!bad&&tot<bs){bs=tot;best=t}}
  state.t=best;state.easy=true;render()};
+refreshSavedList();
+try{const lastOpened=localStorage.getItem(LAST_OPENED_KEY);if(lastOpened)openSavedSong(lastOpened)}catch(_){}
 </script>
 </body>
 </html>
